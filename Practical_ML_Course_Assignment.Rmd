@@ -1,0 +1,259 @@
+---
+title: "ML_Project_Assignment"
+author: "IG"
+date: "February 4, 2018"
+output: html_document
+---
+
+
+
+## Project Background and Objective
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. The goal of this project is to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants who were asked to perform barbell lifts correctly and incorrectly in 5 different ways to predict the manner in which they did the exercise. 
+
+The training data consisted of 19622 observations on some 150+ variables or features. The outcome variable to be predicted is called "classe" in the dataset that has 5 different values- codes as "A" through "E". The test data consists of 20 cases that would be predicted using one of the ML predictors.
+
+```{r}
+#Load the raw data for the training sample
+setwd("C:/Ishani/Learning R/Practical Machine Learning")
+training_raw <- read.csv("./pml-training.csv")
+
+columns <- data.frame(colnames(training_raw))
+predictors <- training_raw[c(8:153)]
+```
+```{r}
+library(caret)
+library(dplyr)
+nearZeroVar(predictors) # To identify variables with zero to low variations
+#Eliminate variables that have low variability
+predictors_v2 <- predictors[-c(5:10,13,16,19,44:52, 62:68,71,72,74,75,80:85, 91,94,118:124,126,127,129,130,132,135:143)]
+#summary(predictors_v2)
+#Calculate what proportion of the remaining variables has missing values
+find_NA <- data.frame(colMeans(is.na(predictors_v2)))
+find_NA <- rename(find_NA, proportion = colMeans.is.na.predictors_v2..)
+find_NA <- tibble::rownames_to_column(find_NA,"variable")
+find_NA2 <- filter(find_NA, proportion == 0)
+#Select and Keep variables that have complete data
+predictors_v3 <- subset(predictors_v2, select = c("roll_belt",
+              
+                                                  "pitch_belt",
+                                                  
+                                                  "yaw_belt",
+                                                  
+                                                  "total_accel_belt",
+                                                  
+                                                  "gyros_belt_x",
+                                              
+                                                  "gyros_belt_y",
+                                                  
+                                                  "gyros_belt_z",
+                                                  
+                                                  "accel_belt_x",
+                                                  
+                                                  "accel_belt_y",
+                                                  
+                                                  "accel_belt_z",
+                                                  
+                                                  "magnet_belt_x",
+                                                  
+                                                  "magnet_belt_y",
+                                                  
+                                                  "magnet_belt_z",
+                                                  
+                                                  "roll_arm",
+                                                  
+                                                  "pitch_arm",
+                                                  
+                                                  "yaw_arm",
+                                                  
+                                                  "total_accel_arm",
+                                                  
+                                                  "gyros_arm_x",
+                                                  
+                                                  "gyros_arm_y",
+                                                  
+                                                  "gyros_arm_z",
+                                                  
+                                                  "accel_arm_x",
+                                                  
+                                                  "accel_arm_y",
+                                                  
+                                                  "accel_arm_z",
+                                                  
+                                                  "magnet_arm_x",
+                                                  
+                                                  "magnet_arm_y",
+                                                  
+                                                  "magnet_arm_z",
+                                                  
+                                                  "roll_dumbbell",
+                                                  
+                                                  "pitch_dumbbell",
+                                                  
+                                                  "yaw_dumbbell",
+                                                  
+                                                  "max_yaw_dumbbell",
+                                                  
+                                                  "total_accel_dumbbell",
+                                                  
+                                                  "gyros_dumbbell_x",
+                                                  
+                                                  "gyros_dumbbell_y",
+                                                  
+                                                  "gyros_dumbbell_z",
+                                                  
+                                                  "accel_dumbbell_x",
+                                                  
+                                                  "accel_dumbbell_y",
+                                                  
+                                                  "accel_dumbbell_z",
+                                                  
+                                                  "magnet_dumbbell_x",
+                                                  
+                                                  "magnet_dumbbell_y",
+                                                  
+                                                  "magnet_dumbbell_z",
+                                                  
+                                                  "roll_forearm",
+                                                  
+                                                  "pitch_forearm",
+                                                  
+                                                  "yaw_forearm",
+                                                  
+                                                  "total_accel_forearm",
+                                                  
+                                                  "gyros_forearm_x",
+                                                  
+                                                  "gyros_forearm_y",
+                                                  
+                                                  "gyros_forearm_z"
+                                                  ))
+predictors_v3 <- cbind(predictors_v3, training_raw[160]) # Combining the outcome and the predictor variables together
+```
+
+```{r}
+#Splitting the training datasets into two random samples in 70-30 ratio
+set.seed(12345)
+indexes = sample(1:nrow(predictors_v3), size=0.3*nrow(predictors_v3))
+testing = predictors_v3[indexes,]
+training = predictors_v3[-indexes,]
+
+#Fitting a bagging algorithm on all variables
+bag_fit_trial <- train(classe ~ ., method = "treebag", data = training)
+varImp(bag_fit_trial)
+
+#Retaining only the top 20 variables as shown by variable importance chart
+
+bag_fit <- train(classe ~ roll_belt +         
+                   yaw_belt +          
+                   pitch_belt +         
+                   pitch_forearm+      
+                   roll_forearm +      
+                   magnet_dumbbell_y+   
+                   magnet_dumbbell_z+  
+                   accel_dumbbell_y+    
+                   roll_dumbbell +      
+                   accel_belt_z +      
+                   magnet_belt_y+       
+                   accel_dumbbell_z+    
+                   magnet_belt_z+       
+                   magnet_dumbbell_x+   
+                   yaw_arm+             
+                   gyros_belt_z+        
+                   accel_arm_x+         
+                   total_accel_belt+    
+                   magnet_belt_x+       
+                   yaw_dumbbell, method = "treebag", data = training)
+
+bagging_prediction <- data.frame(predict(bag_fit, newdata = testing[-48]))
+
+bagging_prediction <- cbind(bagging_prediction, testing[48])
+table(bagging_prediction)
+accuracy.bag <- (1644+1104+965+997+1048)/5886
+```
+#Prediction Accuracy from Bagging Algorithm on the testing sample is 0.9782535
+
+```{r}
+#Fitting the same model with random forest (Using the same set of variables)
+library(randomForest)
+
+rf_fit <- randomForest(classe ~ roll_belt +         
+                         yaw_belt +          
+                         pitch_belt +         
+                         pitch_forearm+      
+                         roll_forearm +      
+                         magnet_dumbbell_y+   
+                         magnet_dumbbell_z+  
+                         accel_dumbbell_y+    
+                         roll_dumbbell +      
+                         accel_belt_z +      
+                         magnet_belt_y+       
+                         accel_dumbbell_z+    
+                         magnet_belt_z+       
+                         magnet_dumbbell_x+   
+                         yaw_arm+             
+                         gyros_belt_z+        
+                         accel_arm_x+         
+                         total_accel_belt+    
+                         magnet_belt_x+       
+                         yaw_dumbbell,mtry = 3, ntree = 300, data = training)
+
+varImpPlot(rf_fit,type=2) 
+#The graph indicates that roll_belt is the most important predictor
+
+qplot(classe, roll_belt, data = training)
+
+rf_prediction <- data.frame(predict(rf_fit, newdata = testing[-48]))
+rf_prediction <- cbind(rf_prediction, testing[48])
+table(rf_prediction)
+accuracy.rf <- (1656+1134+978+1000+1059)/5886
+```
+#In fitting the random forest algorithm, I have set the number of trees to be 300, and the number of variables to be chosen at random at each split at 3.These choices were made primarily to cut down on computational time
+
+#Prediction accuracy from random forest is  0.9899762, a little bit better than what we saw with bagging
+
+```{r}
+
+#Approach No. 3 : Using Gradient Boosting
+
+ctrl = trainControl(method="repeatedcv", number=5, repeats=3, selectionFunction = "oneSE")
+gbm_fit <- train(classe ~ roll_belt +         
+                         yaw_belt +          
+                         pitch_belt +         
+                         pitch_forearm+      
+                         roll_forearm +      
+                         magnet_dumbbell_y+   
+                         magnet_dumbbell_z+  
+                         accel_dumbbell_y+    
+                         roll_dumbbell +      
+                         accel_belt_z +      
+                         magnet_belt_y+       
+                         accel_dumbbell_z+    
+                         magnet_belt_z+       
+                         magnet_dumbbell_x+   
+                         yaw_arm+             
+                         gyros_belt_z+        
+                         accel_arm_x+         
+                         total_accel_belt+    
+                         magnet_belt_x+       
+                         yaw_dumbbell,method = "gbm", trControl = ctrl, data = training)
+
+gbm_prediction <- data.frame(predict(gbm_fit, newdata = testing[-48]))
+gbm_prediction <- cbind(gbm_prediction, testing[48])
+table(gbm_prediction)
+accuracy.gbm <- (1618+1057+936+963+1023)/5886
+```
+# For fitting the GBM, I have used a repeated cross-validation which divides the training sample data into 5 different folds, and the process repeats itself 3 times. Choice involves trade-off in achieving model accuracy and saving on computational time and resources. The gbm accuracy on the test sample is 0.9509004.
+
+## Thus far, using the same set of variables and three different approaches ont the same data sets, I conclude Random Forest has performed the best in terms of prediction accuracy, and that is chosen to predict the 20 test cases (out-of-sample)
+```{r}
+testcases_raw <- read.csv("./pml-testing.csv")
+head(testcases_raw)
+
+prediction_final <- data.frame(predict(rf_fit, newdata = testcases_raw))
+```
+
+
+
+
+
